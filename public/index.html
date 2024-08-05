@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Wellness Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="chat-container">
+        <header>
+            <img src="https://cdn-icons-png.flaticon.com/512/4359/4359732.png" alt="Mental Wellness Icon" width="50">
+            <h1>Mental Wellness Assistant</h1>
+        </header>
+
+        <div id="chat-history"></div>
+        <form id="chat-form">
+            <input type="text" id="user-input" placeholder="How are you feeling today?">
+            <button type="submit">Send</button>
+        </form>
+        <div id="info">
+            <i>ℹ️</i> This is a supportive AI assistant. For immediate help, please contact a mental health professional.
+        </div>
+        <div id="emergency-info" style="text-align: center;">
+            <strong>Emergency Contact:</strong> National Suicide Prevention Lifeline: 1-800-273-8255
+        
+    </div>
+    <div id="loader">
+        <img src="https://i.gifer.com/origin/34/34338d26023e5515f6cc8969aa027bca_w200.gif" width="50px" alt="Loading...">
+    </div>
+    <script>
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const form = document.getElementById('chat-form');
+        const sendButton = document.querySelector('button[type="submit"]');
+        const loader = document.getElementById('loader');
+
+        const userAvatar = 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png';
+        const botAvatar = 'https://cdn-icons-png.flaticon.com/512/4712/4712027.png';
+
+        // Generate a unique user ID
+        const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+        async function sendMessage() {
+    const message = userInput.value.trim();
+
+    if (message === '') {
+        return;
+    }
+
+    userInput.disabled = true;
+    sendButton.disabled = true;
+    loader.style.display = 'block';
+
+    chatHistory.innerHTML += `
+        <div class="message user-message">
+            <img src="${userAvatar}" alt="User" width="30">
+            <div>${message}</div>
+        </div>`;
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    try {
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message, userId }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const botMessage = data.response || "I'm sorry, I couldn't process that request.";
+        const formattedMessage = processMessage(botMessage);
+
+        chatHistory.innerHTML += `
+            <div class="message bot-message">
+                <img src="${botAvatar}" alt="Bot" width="30">
+                <div>${formattedMessage}</div>
+            </div>`;
+    } catch (error) {
+        console.error('Error:', error);
+        chatHistory.innerHTML += `
+            <div class="message error-message">
+                <div>Sorry, I encountered an error. Please try again later.</div>
+            </div>`;
+    } finally {
+        userInput.disabled = false;
+        sendButton.disabled = false;
+        loader.style.display = 'none';
+        userInput.value = '';
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+}
+
+function processMessage(message) {
+    if (typeof message !== 'string') {
+        return 'An unexpected error occurred.';
+    }
+    
+    // Convert markdown-style bold to HTML bold
+    message = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert markdown-style italic to HTML italic
+    message = message.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    // Convert line breaks to HTML line breaks
+    message = message.replace(/\n/g, '<br>');
+    
+    return message;
+}
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            sendMessage();
+        });
+
+        // Initial greeting message
+        window.onload = () => {
+            chatHistory.innerHTML += `
+                <div class="message bot-message">
+                    <img src="${botAvatar}" alt="Bot" width="30">
+                    <div>Hello! I'm your mental wellness assistant. How can I support you today?</div>
+                </div>`;
+        };
+    </script>
+</body>
+</html>
